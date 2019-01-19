@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>My Image Clipboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="app.css?v=1">
+  </head>
+
+  <body>
+
+    <nav class="header navbar navbar-dark bg-danger fixed-top">
+      <a class="navbar-brand" href="/" title="My Image Clipboard">MyClip</a>
+      <ul class="navbar-nav pull-right">
+        <li class="nav-item">
+          <a class="nav-link" href="">Some link</a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="content">
+      <div class="message"></div>
+      <img/>
+      <canvas></canvas>
+    </div>
+
+    <nav class="footer navbar fixed-bottom navbar-light bg-light">
+      <small class="message"></small>
+      <small class="mouse-position pull-right"></small>
+      <small class="image-size pull-right"></small>
+      <small class="pull-right"><a href="https://medium.com/@martindrapeau">Martin Drapeau</a></small>
+    </nav>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+    <script src="app.js?v=1"></script>
+  </body>
+</html>
