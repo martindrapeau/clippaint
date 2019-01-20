@@ -5,9 +5,11 @@ $(document).ready(function() {
 
 
   // Pasting an image
+  var $img = $('img').hide();
   var $message = $('.message');
-  $message.first().html('Copy your screen by pressing on the Print Screen key. Then paste (Ctrl+v) it here as an image.');
   var timeoutId;
+
+  $message.first().html('Copy your screen by pressing on the Print Screen key. Then paste (Ctrl+v) it here as an image.');
   function showMessage(message, reset) {
     if (timeoutId) clearTimeout(timeoutId);
     $message.html(message);
@@ -19,7 +21,6 @@ $(document).ready(function() {
     }
   }
 
-  var $img = $('img').hide();
   function loadImage(file) {
     var deferred = new $.Deferred();
     var reader = new FileReader();
@@ -76,7 +77,7 @@ $(document).ready(function() {
   // Canvas resize
   var draw, crect;
   var canvas = $canvas[0];
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext('2d');
 
   function renderCanvasSizeAndMousePosition(m) {
     var $size = $('.image-size');
@@ -88,10 +89,10 @@ $(document).ready(function() {
   }
 
   function setCanvasSize(width, height) {
-    var image = ctx.getImageData(0, 0, Math.min(width, canvas.width), Math.min(height, canvas.height));
+    var imageData = ctx.getImageData(0, 0, Math.min(width, canvas.width), Math.min(height, canvas.height));
     canvas.width = width;
     canvas.height = height;
-    ctx.putImageData(image, 0, 0);
+    ctx.putImageData(imageData, 0, 0);
     crect.size(width, height);
     draw.size(width+5, height+5);
     renderCanvasSizeAndMousePosition();
@@ -134,12 +135,23 @@ $(document).ready(function() {
 
 
   // Selection
-  var srect;
+  var srect, simage;
+
+  function getBase64ImageFromCanvas(x, y, width, height) {
+    var imageData = ctx.getImageData(x, y, width, height);
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = width;
+    tmpCanvas.height = height;
+    tmpCanvas.getContext('2d').putImageData(imageData, 0, 0);
+    var dataUrl = tmpCanvas.toDataURL('image/png');
+    tmpCanvas.remove();
+    return dataUrl;
+  }
 
   function renderSelectionSizeAndMousePosition() {
     var $selection = $('.selection');
     if (srect) 
-      $selection.html(srect.x() + ', ' + srect.y() + ' : ' + srect.width() + ' x ' + srect.height());
+      $selection.html(srect.x() + ', ' + srect.y() + ' : ' + Math.round(srect.width()) + ' x ' + Math.round(srect.height()));
     else
       $selection.empty();
   }
@@ -153,6 +165,8 @@ $(document).ready(function() {
         .selectize(false)
         .remove();
       srect = undefined;
+      simage.remove();
+      simage = undefined;
       allowCanvasResize(true);
     }
 
@@ -163,6 +177,7 @@ $(document).ready(function() {
     srect.addClass('select');
     srect.remember('start', {x: x, y: y});
     renderSelectionSizeAndMousePosition();
+    $content.addClass('has-image');
   }
 
   function onMouseMove(e) {
@@ -194,12 +209,31 @@ $(document).ready(function() {
         renderSelectionSizeAndMousePosition();
         return;
       }
+
+      // Create image node and put it before
+      var dataUrl = getBase64ImageFromCanvas(srect.x(), srect.y(), srect.width(), srect.height());
+      simage = draw.image(dataUrl, srect.width(), srect.height());
+      simage.x(srect.x()).y(srect.y());
+      srect.before(simage);
+
+      // Allow resize and dragging
       srect.forget('start')
-        .selectize({rotationPoint: false, pointType: 'rect'})
+        .selectize({
+          rotationPoint: false,
+          pointType: 'rect',
+          points: ['lt', 'rt', 'rb', 'lb']
+        })
         .resize({
+          saveAspectRatio: true,
           constraint: {minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height}
         })
-        .draggable();
+        .draggable()
+        .on('dragmove', function() {
+          // Reposition image
+          setTimeout(function() {
+            simage.x(srect.x()).y(srect.y());
+          },1);
+        });
     }
   }
 
