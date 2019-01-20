@@ -1,10 +1,14 @@
 $(document).ready(function() {
 
   var $content = $('.content');
+  var $canvas = $('canvas').hide();
+  var canvas = $canvas[0];
+  var ctx = canvas.getContext("2d");
   var draw = SVG('drawing').size(0, 0);
-  var rect;
+
 
   var $message = $('.message');
+  $message.first().html('Copy your screen by pressing on the Print Screen key. Then paste (Ctrl+v) it here as an image.');
   var timeoutId;
   function showMessage(message, reset) {
     if (timeoutId) clearTimeout(timeoutId);
@@ -37,9 +41,6 @@ $(document).ready(function() {
     return deferred;
   };
 
-  var $canvas = $('canvas').hide();
-  var canvas = $canvas[0];
-  var ctx = canvas.getContext("2d");
   var $size = $('.image-size');
   function copyImageInCanvas() {
     var image = $img[0];
@@ -70,8 +71,9 @@ $(document).ready(function() {
   });
 
 
-  var $mouse = $('.mouse-position');
+  var rect;
   var $selection = $('.selection');
+  var $mouse = $('.mouse-position');
   function getMousePosition(e) {
     return {
       x: Math.round(e.pageX - $content.offset().left - 5),
@@ -145,7 +147,5 @@ $(document).ready(function() {
   $(document).on('mousemove', onMouseMove);
   $(document).on('mousedown', onMouseDown);
   $(document).on('mouseup', onMouseUp);
-
-  $message.first().html('Copy your screen by pressing on the Print Screen key. Then paste (Ctrl+v) it here as an image.');
 
 });
