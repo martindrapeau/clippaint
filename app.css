@@ -2,6 +2,12 @@ body {
 	display: inline-block;
 	padding-top: 56px;
 	padding-bottom: 40px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 .header {
@@ -37,4 +43,26 @@ body {
 
 .content.has-image .message {
 	display: none;
+}
+
+.content #drawing {
+	position: absolute;
+	cursor: crosshair;
+}
+
+.content img {
+	position: absolute;
+}
+
+rect.select,
+rect.svg_select_boundingRect {
+	cursor: grab;
+	fill: transparent;
+	stroke: #000;
+	stroke-dasharray: 5 5;
+    stroke-opacity: 1.0;
+    fill-opacity: 0.0;
+}
+rect.svg_select_points {
+	fill: #fff;
 }
