@@ -157,9 +157,16 @@ $(document).ready(function() {
   }
 
   function onMouseDown(e) {
+    if ($(e.target).is('nav')) return;
+
     var m = getMousePosition(e);
     if (srect) {
       if (srect.inside(m.x, m.y)) return;
+
+      // Drop the image on canvas
+      ctx.drawImage(simage.node, simage.x(), simage.y());
+
+      // Clear selection
       srect.draggable(false)
         .resize('stop')
         .selectize(false)
@@ -202,7 +209,7 @@ $(document).ready(function() {
   function onMouseUp(e) {
     var m = getMousePosition(e);
     if (srect && srect.remember('start')) {
-      if (srect.width() == 0 && srect.height() == 0) {
+      if (srect.width() == 0 || srect.height() == 0) {
         srect.remove();
         srect = undefined;
         allowCanvasResize(true);
@@ -216,7 +223,10 @@ $(document).ready(function() {
       simage.x(srect.x()).y(srect.y());
       srect.before(simage);
 
-      // Allow resize and dragging
+      // Erase area on the canvas
+      ctx.clearRect(srect.x(), srect.y(), srect.width(), srect.height());
+
+      // Allow resize and dragging of selection rectangle
       srect.forget('start')
         .selectize({
           rotationPoint: false,
