@@ -6,6 +6,7 @@ $(document).ready(function() {
 
   // Pasting an image
   var $img = $('img').hide();
+  var img = $img[0];
   var $message = $('.message');
   var timeoutId;
 
@@ -41,13 +42,12 @@ $(document).ready(function() {
   };
 
   function copyImageInCanvas() {
-    var image = $img[0];
-
     showMessage('Copying to canvas...');
-    setCanvasSize(image.naturalWidth, image.naturalHeight);
-    ctx.drawImage(image, 0, 0);
+    setCanvasSize(img.naturalWidth, img.naturalHeight);
+    ctx.drawImage(img, 0, 0);
     $img.hide();
     $canvas.show();
+    createSelection(0, 0, canvas.width, canvas.height);
     showMessage('Image pasted. You can paste again to replace.');
   }
 
@@ -156,27 +156,80 @@ $(document).ready(function() {
       $selection.empty();
   }
 
+  function createSelection(x, y, width, height) {
+    if (!srect) srect = draw.rect(0, 0).addClass('select');
+    srect.x(x).y(y).width(width).height(height);
+
+    // Create image node and put it before
+    var dataUrl = getBase64ImageFromCanvas(x, y, width, height);
+    simage = draw.image(dataUrl, width, height);
+    simage.x(srect.x()).y(srect.y());
+    srect.before(simage);
+
+    // Erase area on the canvas
+    ctx.clearRect(x, y, width, height);
+
+    if (!srect.remember('selected')) {
+      // Allow resize and dragging of selection rectangle
+      srect.forget('start')
+        .remember('selected', true)
+        .selectize({
+          rotationPoint: false,
+          pointType: 'rect',
+          points: ['lt', 'rt', 'rb', 'lb']
+        })
+        .resize({
+          saveAspectRatio: true,
+          constraint: {minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height}
+        })
+        .draggable()
+        .on('dragmove', function() {
+          // Reposition image
+          setTimeout(function() {
+            simage.x(srect.x()).y(srect.y());
+          },1);
+        });
+    }
+
+    if (allowCanvasResize()) allowCanvasResize(false);
+    renderSelectionSizeAndMousePosition();
+    $content.addClass('has-image');
+  }
+
+  function cancelSelection() {
+    if (!srect) return;
+
+    if (srect.remember('start')) {
+      srect.remove();
+      srect = undefined;
+      return;
+    }
+
+    if (srect.remember('selected')) srect.draggable(false).resize('stop').selectize(false);
+    srect.remove();
+    srect = undefined;
+
+    if (simage) {
+      // Drop the image on canvas
+      ctx.drawImage(simage.node, simage.x(), simage.y());
+      simage.remove();
+      simage = undefined;
+    }
+
+    allowCanvasResize(true);
+    renderSelectionSizeAndMousePosition();
+  }
+
   function onMouseDown(e) {
     if ($(e.target).is('nav')) return;
 
     var m = getMousePosition(e);
     if (srect) {
       if (srect.inside(m.x, m.y)) return;
-
-      // Drop the image on canvas
-      ctx.drawImage(simage.node, simage.x(), simage.y());
-
-      // Clear selection
-      srect.draggable(false)
-        .resize('stop')
-        .selectize(false)
-        .remove();
-      srect = undefined;
-      simage.remove();
-      simage = undefined;
-      allowCanvasResize(true);
+      cancelSelection();
     }
 
+    // Start creating selection
     var x = Math.min(Math.max(0, m.x), canvas.width);
     var y = Math.min(Math.max(0, m.y), canvas.height);
     srect = draw.rect(0, 0);
@@ -210,45 +263,20 @@ $(document).ready(function() {
     var m = getMousePosition(e);
     if (srect && srect.remember('start')) {
       if (srect.width() == 0 || srect.height() == 0) {
-        srect.remove();
-        srect = undefined;
-        allowCanvasResize(true);
-        renderSelectionSizeAndMousePosition();
+        cancelSelection();
         return;
       }
-
-      // Create image node and put it before
-      var dataUrl = getBase64ImageFromCanvas(srect.x(), srect.y(), srect.width(), srect.height());
-      simage = draw.image(dataUrl, srect.width(), srect.height());
-      simage.x(srect.x()).y(srect.y());
-      srect.before(simage);
-
-      // Erase area on the canvas
-      ctx.clearRect(srect.x(), srect.y(), srect.width(), srect.height());
-
-      // Allow resize and dragging of selection rectangle
-      srect.forget('start')
-        .selectize({
-          rotationPoint: false,
-          pointType: 'rect',
-          points: ['lt', 'rt', 'rb', 'lb']
-        })
-        .resize({
-          saveAspectRatio: true,
-          constraint: {minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height}
-        })
-        .draggable()
-        .on('dragmove', function() {
-          // Reposition image
-          setTimeout(function() {
-            simage.x(srect.x()).y(srect.y());
-          },1);
-        });
+      createSelection(srect.x(), srect.y(), srect.width(), srect.height());
     }
+  }
+
+  function onKeyDown(e) {
+    if (e.keyCode == 27) cancelSelection();
   }
 
   $(document).on('mousemove', onMouseMove);
   $(document).on('mousedown', onMouseDown);
   $(document).on('mouseup', onMouseUp);
+  $(document).on('keydown', onKeyDown);
 
 });
