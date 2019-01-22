@@ -73,7 +73,6 @@ $(document).ready(function() {
 
     var items = e.originalEvent.clipboardData.items;
     for (var i = 0; i < items.length; i++) {
-      console.log('copyImageInCanvas', i, items[i].type);
       if (IMAGE_MIME_REGEX.test(items[i].type)) {
         cancelSelection();
         loadImageFromFile(items[i].getAsFile()).done(copyImageInCanvas);
@@ -97,8 +96,8 @@ $(document).ready(function() {
   // Helpers
   function getMousePosition(e) {
     return {
-      x: Math.round(e.pageX - $content.offset().left - 5),
-      y: Math.round(e.pageY - $content.offset().top - 5)
+      x: Math.round(e.pageX) - $content.offset().left - 5,
+      y: Math.round(e.pageY) - $content.offset().top - 5
     };
   }
 
@@ -315,7 +314,7 @@ $(document).ready(function() {
         cancelSelection();
         return;
       }
-      createSelection(srect.x(), srect.y(), srect.width(), srect.height());
+      createSelection(srect.x(), srect.y(), Math.round(srect.width()), Math.round(srect.height()));
     }
   }
 
