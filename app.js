@@ -1,12 +1,34 @@
 $(document).ready(function() {
 
+  // The content div contains everything
   var $content = $('.content');
-  var $canvas = $('canvas');
+
+  // The canvas is what we draw on
+  var canvas = $('canvas')[0];
+  var ctx = canvas.getContext('2d');
+
+  // The img is an intermediate element to capture pasted images
+  var img = $('img').hide()[0];
+
+  // We use SVG elements via svg.js for bounding boxes, resize,
+  // drag and drop, etc...
+  var draw = SVG('drawing').size(0, 0);
 
 
-  // Pasting an image
-  var $img = $('img').hide();
-  var img = $img[0];
+
+  // ==========================================================================
+  //
+  // PASTING FROM CLIPBOARD
+  //
+  // Using the Clipboard API, we can detect paste events (Ctrl+v) and create
+  // a new selection of the copied image.
+  //
+  // We support binary images (mime type image/png|jpg|gif) and base64 encoded
+  // images in plain/text mime type. These are called data urls and can be
+  // used to embed inline in the src attribute of images. Look at function
+  // copySelectionToClipboard to learn more.
+  //
+  // ==========================================================================
   var $message = $('.message');
   var timeoutId;
 
@@ -48,7 +70,7 @@ $(document).ready(function() {
 
     showMessage('Loading image...');
     reader.onload = function(e) {
-      $img.attr('src', e.target.result);
+      img.src = e.target.result;
       $content.addClass('has-image');
       showMessage('Image pasted. You can paste again to replace.');
       setTimeout(function() {
@@ -93,18 +115,24 @@ $(document).ready(function() {
   });
 
 
-  // Helpers
+
+
+  // ==========================================================================
+  //
+  // CANVAS RESIZE
+  //
+  // SVG element crect is the canvas bounding box with handles to resize.
+  // It is only shown when there is no selection.
+  //
+  // ==========================================================================
+  var crect;
+
   function getMousePosition(e) {
     return {
       x: Math.round(e.pageX) - $content.offset().left - 5,
       y: Math.round(e.pageY) - $content.offset().top - 5
     };
   }
-
-  // Canvas resize
-  var draw, crect;
-  var canvas = $canvas[0];
-  var ctx = canvas.getContext('2d');
 
   function renderCanvasSizeAndMousePosition(m) {
     var $size = $('.image-size');
@@ -146,7 +174,6 @@ $(document).ready(function() {
   }
 
   function initCanvas(width, height) {
-    draw = SVG('drawing').size(0, 0);
     crect = draw.rect(canvas.width, canvas.height)
       .addClass('canvas')
       .on('resizing', function() {
@@ -161,7 +188,16 @@ $(document).ready(function() {
   initCanvas(window.innerWidth-30, window.innerHeight-56-40-10);
 
 
-  // Selection
+
+  // ==========================================================================
+  //
+  // SELECTION
+  //
+  // SVG element srect is the selection rectangle. It is resizable and
+  // draggable.
+  // SVG element simage is the selected image. 
+  //
+  // ==========================================================================
   var srect, simage;
 
   function getDataUrlFromCanvas(x, y, width, height) {
@@ -177,7 +213,9 @@ $(document).ready(function() {
 
   // Copies the data url as text/plain mime type.
   // It is not possible to copy an image/png mime type unfortunately.
-  function copyToClipboard() {
+  // Using text/plain we can handle copy/paste events within this app.
+  // Even in new instances of it.
+  function copySelectionToClipboard() {
     var t = (new Date()).getTime();
     var str = simage ? simage.src : getDataUrlFromCanvas(0, 0, canvas.width, canvas.height);
 
@@ -332,7 +370,7 @@ $(document).ready(function() {
       case 67: // Ctrl + c
         if (e.ctrlKey) {
           e.preventDefault();
-          if (simage) copyToClipboard();
+          if (simage) copySelectionToClipboard();
         }
         break;
       case 65: // Ctrl + a
@@ -346,7 +384,7 @@ $(document).ready(function() {
         if (e.ctrlKey) {
           e.preventDefault();
           if (simage) {
-            copyToClipboard();
+            copySelectionToClipboard();
             cancelSelection(true);
           }
         }
