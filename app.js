@@ -22,15 +22,33 @@ $(document).ready(function() {
     }
   }
 
-  function loadImage(file) {
+  function loadImageFromDataUrl(dataUrl) {
+    var deferred = new $.Deferred();
+    var onload = function() {
+      $content.addClass('has-image');
+      showMessage('Image pasted. You can paste again to replace.');
+      setTimeout(function() {
+        deferred.resolve();
+      }, 25);
+    }
+
+    if (img.src == dataUrl) {
+      onload();
+    } else {
+      img.onload = onload;
+      img.src = dataUrl;
+    }
+
+    return deferred;
+  }
+
+  function loadImageFromFile(file) {
     var deferred = new $.Deferred();
     var reader = new FileReader();
 
     showMessage('Loading image...');
     reader.onload = function(e) {
-      $img.show();
       $img.attr('src', e.target.result);
-      $canvas.hide();
       $content.addClass('has-image');
       showMessage('Image pasted. You can paste again to replace.');
       setTimeout(function() {
@@ -43,11 +61,9 @@ $(document).ready(function() {
 
   function copyImageInCanvas() {
     showMessage('Copying to canvas...');
-    setCanvasSize(img.naturalWidth, img.naturalHeight);
-    ctx.drawImage(img, 0, 0);
-    $img.hide();
-    $canvas.show();
-    createSelection(0, 0, canvas.width, canvas.height);
+    if (canvas.width < img.naturalWidth || canvas.height < img.naturalHeight)
+      setCanvasSize(Math.max(canvas.width, img.naturalWidth), Math.max(canvas.height, img.naturalHeight));
+    createSelection(0, 0, img.naturalWidth, img.naturalHeight, img.src);
     showMessage('Image pasted. You can paste again to replace.');
   }
 
@@ -57,8 +73,20 @@ $(document).ready(function() {
 
     var items = e.originalEvent.clipboardData.items;
     for (var i = 0; i < items.length; i++) {
+      console.log('copyImageInCanvas', i, items[i].type);
       if (IMAGE_MIME_REGEX.test(items[i].type)) {
-        loadImage(items[i].getAsFile()).done(copyImageInCanvas);
+        cancelSelection();
+        loadImageFromFile(items[i].getAsFile()).done(copyImageInCanvas);
+        return;
+      }
+      if (items[i].type == 'text/plain') {
+        items[i].getAsString(function(text) {
+          if (text.indexOf('data:image/png;base64,') === 0) {
+            loadImageFromDataUrl(text).done(copyImageInCanvas);
+            return;
+          }
+          showMessage('No image found on your Clipboard!', true);
+        });
         return;
       }
       showMessage('No image found on your Clipboard!', true);
@@ -66,13 +94,13 @@ $(document).ready(function() {
   });
 
 
+  // Helpers
   function getMousePosition(e) {
     return {
       x: Math.round(e.pageX - $content.offset().left - 5),
       y: Math.round(e.pageY - $content.offset().top - 5)
     };
   }
-
 
   // Canvas resize
   var draw, crect;
@@ -137,7 +165,7 @@ $(document).ready(function() {
   // Selection
   var srect, simage;
 
-  function getBase64ImageFromCanvas(x, y, width, height) {
+  function getDataUrlFromCanvas(x, y, width, height) {
     var imageData = ctx.getImageData(x, y, width, height);
     var tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = width;
@@ -148,6 +176,25 @@ $(document).ready(function() {
     return dataUrl;
   }
 
+  // Copies the data url as text/plain mime type.
+  // It is not possible to copy an image/png mime type unfortunately.
+  function copyToClipboard() {
+    var t = (new Date()).getTime();
+    var str = simage ? simage.src : getDataUrlFromCanvas(0, 0, canvas.width, canvas.height);
+
+    if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
+      window.navigator.clipboard.writeText(str);
+      return;
+    }
+
+    var $textarea = $('<input style="position:absolute;left:-9999px;opacity:0;" readonly autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />');
+    $('body').append($textarea);
+    $textarea.val(str);
+    $textarea[0].select();
+    document.execCommand('copy');
+    $textarea.remove();
+  }
+
   function renderSelectionSizeAndMousePosition() {
     var $selection = $('.selection');
     if (srect) 
@@ -156,18 +203,20 @@ $(document).ready(function() {
       $selection.empty();
   }
 
-  function createSelection(x, y, width, height) {
+  function createSelection(x, y, width, height, fromDataUrl) {
     if (!srect) srect = draw.rect(0, 0).addClass('select');
     srect.x(x).y(y).width(width).height(height);
 
     // Create image node and put it before
-    var dataUrl = getBase64ImageFromCanvas(x, y, width, height);
+    var dataUrl = fromDataUrl || getDataUrlFromCanvas(x, y, width, height);
     simage = draw.image(dataUrl, width, height);
     simage.x(srect.x()).y(srect.y());
     srect.before(simage);
 
-    // Erase area on the canvas
-    ctx.clearRect(x, y, width, height);
+    if (!fromDataUrl) {
+      // Erase area on the canvas
+      ctx.clearRect(x, y, width, height);
+    }
 
     if (!srect.remember('selected')) {
       // Allow resize and dragging of selection rectangle
@@ -196,7 +245,7 @@ $(document).ready(function() {
     $content.addClass('has-image');
   }
 
-  function cancelSelection() {
+  function cancelSelection(preventDrop) {
     if (!srect) return;
 
     if (srect.remember('start')) {
@@ -211,7 +260,7 @@ $(document).ready(function() {
 
     if (simage) {
       // Drop the image on canvas
-      ctx.drawImage(simage.node, simage.x(), simage.y());
+      if (!preventDrop) ctx.drawImage(simage.node, simage.x(), simage.y());
       simage.remove();
       simage = undefined;
     }
@@ -271,7 +320,39 @@ $(document).ready(function() {
   }
 
   function onKeyDown(e) {
-    if (e.keyCode == 27) cancelSelection();
+    switch (e.keyCode) {
+      case 27: // Esc
+        e.preventDefault();
+        cancelSelection();
+        break;
+      case 46: // Delete
+      case 8: // Backspace
+        e.preventDefault();
+        cancelSelection(true);
+        break;
+      case 67: // Ctrl + c
+        if (e.ctrlKey) {
+          e.preventDefault();
+          if (simage) copyToClipboard();
+        }
+        break;
+      case 65: // Ctrl + a
+        if (e.ctrlKey) {
+          e.preventDefault();
+          cancelSelection();
+          createSelection(0, 0, canvas.width, canvas.height);
+        }
+        break;
+      case 88: // Ctrl + x
+        if (e.ctrlKey) {
+          e.preventDefault();
+          if (simage) {
+            copyToClipboard();
+            cancelSelection(true);
+          }
+        }
+        break;
+    }
   }
 
   $(document).on('mousemove', onMouseMove);

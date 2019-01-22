@@ -15,7 +15,7 @@ body {
 }
 
 .navbar-brand {
-  min-width: 35px;
+  width: 35px;
   padding: 0px;
   padding-left: 5px;
   position: relative;
@@ -26,6 +26,7 @@ body {
 
 .content {
 	display: inline-block;
+	position: relative;
 	padding: 5px;
 }
 
@@ -52,6 +53,8 @@ body {
 
 .content img {
 	position: absolute;
+	top: 0;
+	overflow: hidden;
 }
 
 rect.svg_select_boundingRect {
