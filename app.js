@@ -1,17 +1,26 @@
 $(document).ready(function() {
 
-  // The content div contains everything
+  // ==========================================================================
+  // 
+  // MYCLIP - MS Paint in the browser
+  // 
+  // IMPORTANT VARS
+  // - $content: jQuery div element that contains all that we draw
+  // - canvas, ctx: canvas DOM element we draw on
+  // - img: intermediate DOM element to capture and process pasted images
+  // - draw: svj.js object wrapping the SVG DOM element.
+  //
+  // CANVAS & SVG
+  // The canvas and SVG elements serve different purposes. The canvas, just as
+  // the name implies, is the drawing canvas. SVG is used to handle human
+  // interactions. For instance drawing a select box, clipping an image,
+  // dragging an image, dropping an image and canvas resize.
+  //
+  // ==========================================================================
   var $content = $('.content');
-
-  // The canvas is what we draw on
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
-
-  // The img is an intermediate element to capture pasted images
   var img = $('img').hide()[0];
-
-  // We use SVG elements via svg.js for bounding boxes, resize,
-  // drag and drop, etc...
   var draw = SVG('drawing').size(0, 0);
 
 
@@ -32,7 +41,10 @@ $(document).ready(function() {
   var $message = $('.message');
   var timeoutId;
 
-  $message.first().html('Copy your screen by pressing on the Print Screen key. Then paste (Ctrl+v) it here as an image.');
+  $message.first().html(`
+    Copy your screen by pressing on the Print Screen key.
+    Then paste (Ctrl+v) it here as an image.
+  `);
   function showMessage(message, reset) {
     if (timeoutId) clearTimeout(timeoutId);
     $message.html(message);
@@ -89,13 +101,12 @@ $(document).ready(function() {
     showMessage('Image pasted. You can paste again to replace.');
   }
 
-  var IMAGE_MIME_REGEX = /^image\/(p?jpeg|gif|png)$/i;
-  $(document).on('paste', function(e) {
+  function onPaste(e) {
     if (!e.originalEvent.clipboardData || !e.originalEvent.clipboardData.items) return;
 
     var items = e.originalEvent.clipboardData.items;
     for (var i = 0; i < items.length; i++) {
-      if (IMAGE_MIME_REGEX.test(items[i].type)) {
+      if (/^image\/(p?jpeg|gif|png)$/i.test(items[i].type)) {
         cancelSelection();
         loadImageFromFile(items[i].getAsFile()).done(copyImageInCanvas);
         return;
@@ -112,7 +123,7 @@ $(document).ready(function() {
       }
       showMessage('No image found on your Clipboard!', true);
     }
-  });
+  }
 
 
 
@@ -143,11 +154,17 @@ $(document).ready(function() {
     }
   }
 
-  function setCanvasSize(width, height) {
-    var imageData = ctx.getImageData(0, 0, Math.min(width, canvas.width), Math.min(height, canvas.height));
-    canvas.width = width;
-    canvas.height = height;
-    ctx.putImageData(imageData, 0, 0);
+  function setCanvasSize(width, height, ignoreUndoRedo) {
+    if (width != canvas.width || height != canvas.height) {
+      if (!ignoreUndoRedo) {
+        clearRedoStack();
+        addCanvasResizeOperationToStack(width, height);
+      }
+      var imageData = ctx.getImageData(0, 0, Math.min(width, canvas.width), Math.min(height, canvas.height));
+      canvas.width = width;
+      canvas.height = height;
+      ctx.putImageData(imageData, 0, 0);
+    }
     crect.size(width, height);
     draw.size(width+5, height+5);
     renderCanvasSizeAndMousePosition();
@@ -169,11 +186,15 @@ $(document).ready(function() {
     }
 
     if (allow === false && allowed) {
-      crect.forget('allowResize').resize('stop').selectize(false);
+      crect.forget('allowResize')
+        .resize('stop')
+        .selectize(false);
     }
   }
 
   function initCanvas(width, height) {
+    canvas.width = width;
+    canvas.height = height;
     crect = draw.rect(canvas.width, canvas.height)
       .addClass('canvas')
       .on('resizing', function() {
@@ -182,7 +203,7 @@ $(document).ready(function() {
       .on('resizedone', function() {
         setCanvasSize(crect.width(), crect.height());
       });
-    setCanvasSize(width, height);
+    setCanvasSize(width, height, true);
     allowCanvasResize(true);
   }
   initCanvas(window.innerWidth-30, window.innerHeight-56-40-10);
@@ -193,12 +214,18 @@ $(document).ready(function() {
   //
   // SELECTION
   //
-  // SVG element srect is the selection rectangle. It is resizable and
-  // draggable.
-  // SVG element simage is the selected image. 
+  // Selection is handled via mous events (mousedown, mousemove, mouseup) on
+  // SVG elements. We use event delegation via the document root element.
+  //
+  // SVG element srect is the selection rectangle. When the user has finished
+  // creating the selection box, it becomes resizable and draggable. The
+  // overlapping image on canvas is clipped and copied onto SVG element simage.
+  // When the selection is cancelled, the simage is dropped and copied back
+  // on canvas at the new position.
   //
   // ==========================================================================
-  var srect, simage;
+  var srect;
+  var simage;
 
   function getDataUrlFromCanvas(x, y, width, height) {
     var imageData = ctx.getImageData(x, y, width, height);
@@ -252,6 +279,8 @@ $(document).ready(function() {
 
     if (!fromDataUrl) {
       // Erase area on the canvas
+      clearRedoStack();
+      addClipOperationToStack(x, y, width, height);
       ctx.clearRect(x, y, width, height);
     }
 
@@ -297,7 +326,11 @@ $(document).ready(function() {
 
     if (simage) {
       // Drop the image on canvas
-      if (!preventDrop) ctx.drawImage(simage.node, simage.x(), simage.y());
+      if (!preventDrop) {
+        clearRedoStack();
+        addDropOperationToStack(simage.x(), simage.y(), simage.width(), simage.height());
+        ctx.drawImage(simage.node, simage.x(), simage.y());
+      }
       simage.remove();
       simage = undefined;
     }
@@ -356,45 +389,169 @@ $(document).ready(function() {
     }
   }
 
+  $(document).on('mousemove', onMouseMove);
+  $(document).on('mousedown', onMouseDown);
+  $(document).on('mouseup', onMouseUp);
+
+
+
+
+  // ==========================================================================
+  //
+  // UNDO AND REDO
+  //
+  // Track operations on a stack and allow the user to undo and redo.
+  // Variables done and undone are arrays containing operations that were
+  // done and undone, respectively.
+  //
+  // ==========================================================================
+  var done = window.done = [];
+  var undone = window.undone = [];
+
+  function addClipOperationToStack(x, y, width, height, stack) {
+    (stack || done).push({
+      type: 'clip',
+      imageData: ctx.getImageData(x, y, width, height),
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    });
+  }
+
+  function addDropOperationToStack(x, y, width, height, stack) {
+    (stack || done).push({
+      type: 'drop',
+      imageData: ctx.getImageData(x, y, width, height),
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    });
+  }
+
+  function addCanvasResizeOperationToStack(width, height, stack) {
+    (stack || done).push({
+      type: 'canvas-resize',
+      originalWidth: canvas.width,
+      originalHeight: canvas.height,
+      newWidth: width,
+      newHeight: height,
+      verticalImageData: width < canvas.width ? ctx.getImageData(width, 0, canvas.width - width, Math.min(canvas.height, height)) : undefined,
+      horizontalImageData: height < canvas.height ? ctx.getImageData(0, height, Math.min(canvas.width, width), canvas.height - height) : undefined,
+      cornerImageData: width < canvas.width && height < canvas.height ? ctx.getImageData(width, height, canvas.width - width, canvas.height - height) : undefined
+    });
+  }
+
+  function undoClipOrDropOperation(op) {
+    ctx.putImageData(op.imageData, op.x, op.y);
+  }
+
+  function undoCanvasResizeOperation(op) {
+    setCanvasSize(op.originalWidth, op.originalHeight, true);
+    if (op.verticalImageData)
+      ctx.putImageData(op.verticalImageData, op.originalWidth, 0);
+    if (op.horizontalImageData)
+      ctx.putImageData(op.horizontalImageData, 0, op.originalHeight);
+    if (op.cornerImageData)
+      ctx.putImageData(op.cornerImageData, op.originalWidth, op.originalHeight);
+  }
+
+  function applyOperationOnTopOfStack(stack, otherStack) {
+    if (stack.length == 0) return;
+    var op = stack.pop();
+
+    switch (op.type) {
+      case 'clip':
+        addDropOperationToStack(op.x, op.y, op.width, op.height, otherStack);
+        undoClipOrDropOperation(op);
+        break;
+      case 'drop':
+        addClipOperationToStack(op.x, op.y, op.width, op.height, otherStack);
+        undoClipOrDropOperation(op);
+        break;
+      case 'canvas-resize':
+        addCanvasResizeOperationToStack(op.newWidth, op.newHeight, otherStack);
+        undoCanvasResizeOperation(op);
+        break;
+    }
+  }
+
+  function clearRedoStack() {
+    undone = [];
+  }
+
+  function undo() {
+    return applyOperationOnTopOfStack(done, undone);
+  }
+
+  function redo() {
+    return applyOperationOnTopOfStack(undone, done);
+  }
+
+
+
+
+  // ==========================================================================
+  //
+  // KEYBOARD BINDINGS
+  //
+  // Handle keyboard shortcuts for various operations via the document's 
+  // keydown event. The exception is the paste or Ctrl + v which is handled
+  // directly via the document's paste event.
+  //
+  // ==========================================================================
+
   function onKeyDown(e) {
     switch (e.keyCode) {
-      case 27: // Esc
-        e.preventDefault();
-        cancelSelection();
-        break;
-      case 46: // Delete
-      case 8: // Backspace
-        e.preventDefault();
-        cancelSelection(true);
-        break;
-      case 67: // Ctrl + c
-        if (e.ctrlKey) {
+      case 27: // Esc (drop selection in place)
+        if (srect || simage) {
           e.preventDefault();
-          if (simage) copySelectionToClipboard();
+          cancelSelection();
         }
         break;
-      case 65: // Ctrl + a
+      case 46: // Delete
+      case 8: // Backspace (delete selection)
+        if (simage) {
+          e.preventDefault();
+          cancelSelection(true);
+        }
+        break;
+      case 67: // Ctrl + c (copy)
+        if (e.ctrlKey && simage) {
+          e.preventDefault();
+          copySelectionToClipboard();
+        }
+        break;
+      case 65: // Ctrl + a (select all)
         if (e.ctrlKey) {
           e.preventDefault();
           cancelSelection();
           createSelection(0, 0, canvas.width, canvas.height);
         }
         break;
-      case 88: // Ctrl + x
-        if (e.ctrlKey) {
+      case 88: // Ctrl + x (cut)
+        if (e.ctrlKey && simage) {
           e.preventDefault();
-          if (simage) {
-            copySelectionToClipboard();
-            cancelSelection(true);
-          }
+          copySelectionToClipboard();
+          cancelSelection(true);
         }
         break;
+      case 90: // Ctrl + z (undo)
+        if (e.ctrlKey) {
+          e.preventDefault();
+          undo();
+        }
+        break;
+      case 89: // Ctrl + y (redo)
+        if (e.ctrlKey) {
+          e.preventDefault();
+          redo();
+        }
     }
   }
-
-  $(document).on('mousemove', onMouseMove);
-  $(document).on('mousedown', onMouseDown);
-  $(document).on('mouseup', onMouseUp);
+  
   $(document).on('keydown', onKeyDown);
+  $(document).on('paste', onPaste);
 
 });
