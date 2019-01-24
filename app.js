@@ -2,19 +2,26 @@ $(document).ready(function() {
 
   // ==========================================================================
   // 
-  // MYCLIP - MS Paint in the browser
+  // myClip - MS Paint in the browser
   // 
   // IMPORTANT VARS
   // - $content: jQuery div element that contains all that we draw
   // - canvas, ctx: canvas DOM element we draw on
   // - img: intermediate DOM element to capture and process pasted images
-  // - draw: svj.js object wrapping the SVG DOM element.
+  // - draw: svg.js object wrapping the SVG DOM element.
   //
   // CANVAS & SVG
   // The canvas and SVG elements serve different purposes. The canvas, just as
   // the name implies, is the drawing canvas. SVG is used to handle human
   // interactions. For instance drawing a select box, clipping an image,
-  // dragging an image, dropping an image and canvas resize.
+  // dragging an image, dropping an image and canvas resize. We use the svg.js
+  // library to provide that functionality.
+  //
+  // DEPENDENCIES
+  // - Bootstrap 4.1
+  // - jQuery slim 3.3
+  // - FontAwesome 4.7
+  // - svg.js 2.7 and a few plugins
   //
   // ==========================================================================
   var $content = $('.content');
@@ -214,7 +221,7 @@ $(document).ready(function() {
   //
   // SELECTION
   //
-  // Selection is handled via mous events (mousedown, mousemove, mouseup) on
+  // Selection is handled via mouse events (mousedown, mousemove, mouseup) on
   // SVG elements. We use event delegation via the document root element.
   //
   // SVG element srect is the selection rectangle. When the user has finished
@@ -309,6 +316,7 @@ $(document).ready(function() {
     if (allowCanvasResize()) allowCanvasResize(false);
     renderSelectionSizeAndMousePosition();
     $content.addClass('has-image');
+    renderToolbar();
   }
 
   function cancelSelection(preventDrop) {
@@ -337,6 +345,7 @@ $(document).ready(function() {
 
     allowCanvasResize(true);
     renderSelectionSizeAndMousePosition();
+    renderToolbar();
   }
 
   function onMouseDown(e) {
@@ -420,6 +429,14 @@ $(document).ready(function() {
   }
 
   function addDropOperationToStack(x, y, width, height, stack) {
+    // Eliminate self-canceling operations (drop of a clip at same position)
+    if (!stack && done.length > 0) {
+      var op = done[done.length-1];
+      if (op.type == 'clip' && op.x == x && op.y == y && op.width == width && op.height == height) {
+        done.pop();
+        return;
+      }
+    }
     (stack || done).push({
       type: 'drop',
       imageData: ctx.getImageData(x, y, width, height),
@@ -461,6 +478,7 @@ $(document).ready(function() {
     if (stack.length == 0) return;
     var op = stack.pop();
 
+    cancelSelection(true);
     switch (op.type) {
       case 'clip':
         addDropOperationToStack(op.x, op.y, op.width, op.height, otherStack);
@@ -475,6 +493,7 @@ $(document).ready(function() {
         undoCanvasResizeOperation(op);
         break;
     }
+    renderToolbar();
   }
 
   function clearRedoStack() {
@@ -553,5 +572,57 @@ $(document).ready(function() {
   
   $(document).on('keydown', onKeyDown);
   $(document).on('paste', onPaste);
+
+
+
+
+  // ==========================================================================
+  //
+  // TOOLBAR
+  //
+  // ...
+  //
+  // ==========================================================================
+
+  function renderToolbar() {
+    if (simage) $('.action.cut,.action.copy').removeAttr('disabled');
+    else $('.action.cut,.action.copy').attr('disabled', true);
+
+    if (done.length) $('.action.undo').removeAttr('disabled')
+    else $('.action.undo').attr('disabled', true);
+
+    if (undone.length) $('.action.redo').removeAttr('disabled')
+    else $('.action.redo').attr('disabled', true);
+  }
+
+  $('.action.select-all').click(function() {
+    cancelSelection();
+    createSelection(0, 0, canvas.width, canvas.height);
+  });
+
+  $('.action.cut').click(function() {
+    copySelectionToClipboard();
+    cancelSelection(true);
+  });
+
+  $('.action.copy').click(function() {
+    copySelectionToClipboard();
+    cancelSelection(true);
+  });
+
+  $('.action.paste').popover();
+
+  $('.action.undo').click(undo);
+
+  $('.action.redo').click(redo);
+
+  // Prevent form in navbar from submitting as its only used
+  // as a container of buttons
+  $('form').on('submit', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  renderToolbar();
 
 });

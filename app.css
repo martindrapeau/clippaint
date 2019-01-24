@@ -13,15 +13,19 @@ body {
 .header {
 	box-shadow: 0px 0px 3px 1px rgba(153,153,153,1);
 }
-
-.navbar-brand {
-  width: 35px;
+.header .navbar-brand {
   padding: 0px;
-  padding-left: 5px;
   position: relative;
   .brand-paths {
     fill: $white;
   }
+}
+.header .navbar-brand svg {
+  width: 35px;
+  margin-right: 5px;
+}
+.header .btn.action {
+	border-color: #fdd;
 }
 
 .content {
@@ -29,7 +33,6 @@ body {
 	position: relative;
 	padding: 5px;
 }
-
 .content .message {
 	position: fixed;
 	top: 40%;
@@ -41,16 +44,13 @@ body {
 	left: 25%;
 	color: #999;
 }
-
 .content.has-image .message {
 	display: none;
 }
-
 .content #drawing {
 	position: absolute;
 	cursor: crosshair;
 }
-
 .content img {
 	position: absolute;
 	top: 0;
