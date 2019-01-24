@@ -610,7 +610,7 @@ $(document).ready(function() {
     cancelSelection(true);
   });
 
-  $('.action.paste').popover();
+  $('.action.paste').tooltip();
 
   $('.action.undo').click(undo);
 

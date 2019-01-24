@@ -23,9 +23,6 @@ body {
   width: 32px;
   margin-right: 5px;
 }
-.header .btn.action {
-	border-color: #fdd;
-}
 
 .content {
 	display: inline-block;

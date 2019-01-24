@@ -22,18 +22,14 @@
       </a>
       <form class="navbar-form form-inline mr-auto">
         <div class="btn-toolbar ml-2" role="toolbar" aria-label="Toolbar">
-          <div class="btn-group" role="group" aria-label="Selection">
-            <button class="btn btn-danger action select-all" title="Select all (Ctrl+a)"><i class="fa fa-fw fa-object-group"></i></button>
-           <button tabindex="0" class="btn btn-danger action paste" title="Paste (Ctrl+v)" data-toggle="popover" data-trigger="focus" data-content="Press keys Ctrl + v to paste an image." data-placement="bottom">
-              <i class="fa fa-fw fa-paste"></i>
-            </button>
-            <button class="btn btn-danger action copy" title="Copy (Ctrl+c)"><i class="fa fa-fw fa-copy"></i></button>
-            <button class="btn btn-danger action cut" title="Cut (Ctrl+c)"><i class="fa fa-fw fa-cut"></i></button>
-          </div>
-          <div class="btn-group ml-2" role="group" aria-label="Undo and redo">
-            <button class="btn btn-danger action undo" title="Undo (Ctrl+z)"><i class="fa fa-fw fa-undo"></i></button>
-           <button class="btn btn-danger action redo" title="Redo (Ctrl+y)"><i class="fa fa-fw fa-repeat"></i></button>
-          </div>
+          <button class="btn btn-danger action select-all" title="Select all (Ctrl+a)"><i class="fa fa-fw fa-object-group"></i></button>
+         <button tabindex="0" class="btn btn-danger action paste" title="Paste (Ctrl+v). To paste and image press keys Ctrl and v." data-toggle="tooltip" data-trigger="focus" data-placement="bottom">
+            <i class="fa fa-fw fa-paste"></i>
+          </button>
+          <button class="btn btn-danger action copy" title="Copy (Ctrl+c)"><i class="fa fa-fw fa-copy"></i></button>
+          <button class="btn btn-danger action cut" title="Cut (Ctrl+c)"><i class="fa fa-fw fa-cut"></i></button>
+          <button class="ml-2 btn btn-danger action undo" title="Undo (Ctrl+z)"><i class="fa fa-fw fa-undo"></i></button>
+         <button class="btn btn-danger action redo" title="Redo (Ctrl+y)"><i class="fa fa-fw fa-repeat"></i></button>
         </div>
       </form>
       <ul class="navbar-nav ml-auto">
