@@ -2,7 +2,7 @@ $(document).ready(function() {
 
   // ==========================================================================
   // 
-  // myClip - MS Paint in the browser
+  // Clip Paint - Paint in the Browser
   // 
   // IMPORTANT VARS
   // - $content: jQuery div element that contains all that we draw

@@ -1,4 +1,2 @@
-# myclip
-My personal clipboard
-
-https://martindrapeau.github.io/myclip/
+# Clip Paint - Paint in the Browser
+https://clippaint.com/
