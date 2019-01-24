@@ -8,6 +8,7 @@ body {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+	font-family: 'Neucha', cursive;
 }
 
 .header {
@@ -16,12 +17,10 @@ body {
 .header .navbar-brand {
   padding: 0px;
   position: relative;
-  .brand-paths {
-    fill: $white;
-  }
+  font-size: 26px;
 }
 .header .navbar-brand svg {
-  width: 35px;
+  width: 32px;
   margin-right: 5px;
 }
 .header .btn.action {
