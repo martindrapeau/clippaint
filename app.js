@@ -22,6 +22,7 @@ $(document).ready(function() {
   // - jQuery slim 3.3
   // - FontAwesome 4.7
   // - svg.js 2.7 and a few plugins
+  // - download.js 1.4.8
   //
   // ==========================================================================
   var $content = $('.content');
@@ -100,7 +101,7 @@ $(document).ready(function() {
     return deferred;
   };
 
-  function copyImageInCanvas() {
+  function copyImageToSelection() {
     showMessage('Copying to canvas...');
     if (canvas.width < img.naturalWidth || canvas.height < img.naturalHeight)
       setCanvasSize(Math.max(canvas.width, img.naturalWidth), Math.max(canvas.height, img.naturalHeight));
@@ -115,13 +116,13 @@ $(document).ready(function() {
     for (var i = 0; i < items.length; i++) {
       if (/^image\/(p?jpeg|gif|png)$/i.test(items[i].type)) {
         cancelSelection();
-        loadImageFromFile(items[i].getAsFile()).done(copyImageInCanvas);
+        loadImageFromFile(items[i].getAsFile()).done(copyImageToSelection);
         return;
       }
       if (items[i].type == 'text/plain') {
         items[i].getAsString(function(text) {
           if (text.indexOf('data:image/png;base64,') === 0) {
-            loadImageFromDataUrl(text).done(copyImageInCanvas);
+            loadImageFromDataUrl(text).done(copyImageToSelection);
             return;
           }
           showMessage('No image found on your Clipboard!', true);
@@ -213,8 +214,16 @@ $(document).ready(function() {
     setCanvasSize(width, height, true);
     allowCanvasResize(true);
   }
-  initCanvas(window.innerWidth-30, window.innerHeight-56-40-10);
-
+  if (window.localStorage.ClipPaintClone) {
+    var clone = JSON.parse(window.localStorage.ClipPaintClone);
+    delete window.localStorage.ClipPaintClone;
+    initCanvas(clone.width, clone.height);
+    loadImageFromDataUrl(clone.imageDataUrl).done(function() {
+      ctx.drawImage(img, 0, 0);
+    });
+  } else {
+    initCanvas(window.innerWidth-30, window.innerHeight-56-40-10);
+  }
 
 
   // ==========================================================================
@@ -615,6 +624,31 @@ $(document).ready(function() {
   $('.action.undo').click(undo);
 
   $('.action.redo').click(redo);
+
+  $('.action.download').click(function() {
+    download(getDataUrlFromCanvas(0, 0, canvas.width, canvas.height), 'clippaint.png', 'image/png');
+  });
+
+  $('.action.clone').click(function(e) {
+    var clone = JSON.stringify({
+      width: canvas.width,
+      height: canvas.height,
+      imageDataUrl: getDataUrlFromCanvas(0, 0, canvas.width, canvas.height)
+    });
+    try {
+      window.localStorage.ClipPaintClone = clone;
+      window.open(window.location.href, '_blank').focus();
+    } catch (err) {
+      $('.alert-container').append(`
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          Oh crap the image is too big to clone...
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      `);
+    }
+  });
 
   // Prevent form in navbar from submitting as its only used
   // as a container of buttons
