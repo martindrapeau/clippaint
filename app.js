@@ -9,6 +9,7 @@ $(document).ready(function() {
   // - canvas, ctx: canvas DOM element we draw on
   // - img: intermediate DOM element to capture and process pasted images
   // - draw: svg.js object wrapping the SVG DOM element.
+  // - hermite: Hermite object to resize images.
   //
   // CANVAS & SVG
   // The canvas and SVG elements serve different purposes. The canvas, just as
@@ -18,11 +19,12 @@ $(document).ready(function() {
   // library to provide that functionality.
   //
   // DEPENDENCIES
-  // - Bootstrap 4.1
-  // - jQuery slim 3.3
-  // - FontAwesome 4.7
-  // - svg.js 2.7 and a few plugins
-  // - download.js 1.4.8
+  // - Bootstrap 4
+  // - jQuery 3 (slim version)
+  // - FontAwesome 4
+  // - svg.js and a few plugins
+  // - hermite.js for image resize
+  // - download.js to download image
   //
   // ==========================================================================
   var $content = $('.content');
@@ -30,6 +32,7 @@ $(document).ready(function() {
   var ctx = canvas.getContext('2d');
   var img = $('img').hide()[0];
   var draw = SVG('drawing').size(0, 0);
+  var hermite = new Hermite_class();
 
 
 
@@ -283,6 +286,29 @@ $(document).ready(function() {
       $selection.empty();
   }
 
+  function resizeSimage(width, height) {
+    if (!simage || !srect || simage.width() == srect.width() && simage.height() == srect.height()) return;
+
+    var newWidth = srect.width();
+    var newHeight = srect.height();
+
+    var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = simage.width();
+    tmpCanvas.height = simage.height();
+    var tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.drawImage(simage.node, 0, 0);
+    simage.remove();
+    simage = undefined;
+
+    hermite.resample_single(tmpCanvas, newWidth, newHeight, true);
+    var dataUrl = tmpCanvas.toDataURL('image/png');
+    tmpCanvas.remove();
+
+    simage = draw.image(dataUrl, newWidth, newHeight);
+    simage.x(srect.x()).y(srect.y());
+    srect.before(simage);
+  }
+
   function createSelection(x, y, width, height, fromDataUrl) {
     if (!srect) srect = draw.rect(0, 0).addClass('select');
     srect.x(x).y(y).width(width).height(height);
@@ -312,6 +338,9 @@ $(document).ready(function() {
         .resize({
           saveAspectRatio: true,
           constraint: {minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height}
+        })
+        .on('resizedone', function() {
+          resizeSimage(srect.width(), srect.height());
         })
         .draggable()
         .on('dragmove', function() {
