@@ -51,7 +51,7 @@ $(document).ready(function() {
 
   $message.first().html(`
     Copy your screen by pressing on the Print Screen key.
-    Then paste (Ctrl+v) it here as an image.
+    Then paste (Ctrl+v) as an image.
   `);
   function showMessage(message, reset) {
     if (timeoutId) clearTimeout(timeoutId);
@@ -68,7 +68,7 @@ $(document).ready(function() {
     var deferred = new $.Deferred();
     var onload = function() {
       $content.addClass('has-image');
-      showMessage('Image pasted. You can paste again to replace.');
+      showMessage("Image pasted. Cut, copy and paste some more.");
       setTimeout(function() {
         deferred.resolve();
       }, 25);
@@ -92,7 +92,7 @@ $(document).ready(function() {
     reader.onload = function(e) {
       img.src = e.target.result;
       $content.addClass('has-image');
-      showMessage('Image pasted. You can paste again to replace.');
+      showMessage('Image pasted. Cut, copy and paste some more.');
       setTimeout(function() {
         deferred.resolve();
       }, 25);
@@ -106,7 +106,7 @@ $(document).ready(function() {
     if (canvas.width < img.naturalWidth || canvas.height < img.naturalHeight)
       setCanvasSize(Math.max(canvas.width, img.naturalWidth), Math.max(canvas.height, img.naturalHeight));
     createSelection(0, 0, img.naturalWidth, img.naturalHeight, img.src);
-    showMessage('Image pasted. You can paste again to replace.');
+    showMessage('Image pasted. Cut, copy and paste some more.');
   }
 
   function onPaste(e) {
@@ -639,7 +639,7 @@ $(document).ready(function() {
       window.localStorage.ClipPaintClone = clone;
       window.open(window.location.href, '_blank').focus();
     } catch (err) {
-      $('.alert-container').append(`
+      $('body').append(`
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
           Oh crap the image is too big to clone...
           <button type="button" class="close" data-dismiss="alert" aria-label="Close">
