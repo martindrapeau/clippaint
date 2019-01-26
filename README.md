@@ -45,6 +45,8 @@ Pixel-perfect image resize was essential. MS Paint doesn't even have that.
 
 # Code
 The entire app is contained within one file `app.js`. It is self documented.
+
+# Dependencies
 Clip Paint does depend on a number of other libraries. These are:
 - [Bootstrap 4](https://getbootstrap.com/docs/4.0/getting-started/introduction/)
 - [jQuery 3](http://jquery.com/) (slim version)
