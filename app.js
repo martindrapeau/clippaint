@@ -236,7 +236,7 @@ $(document).ready(function() {
   // Selection is handled via mouse events (mousedown, mousemove, mouseup) on
   // SVG elements. We use event delegation via the document root element.
   //
-  // SVG element srect is the selection rectangle. When the user has finished
+  // SVG element srect is the selection box. When the user has finished
   // creating the selection box, it becomes resizable and draggable. The
   // overlapping image on canvas is clipped and copied onto SVG element simage.
   // When the selection is cancelled, the simage is dropped and copied back
