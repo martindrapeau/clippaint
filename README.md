@@ -25,13 +25,27 @@ Fortunately however, copy/paste codes work in the web app.
 You see I copy the image base64 representation onto the clipboard as `text/plain`.
 In paste events I can grab that.
 
+## Canvas
+Clip Paint uses HTML canvas to hold the entire image.
+
 ## Canvas and SVG
 The web app uses Canvas and SVG. They serve different purposes.
 The canvas, just as the name implies, is the drawing canvas.
 SVG is used to handle human interactions.
-For instance drawing a select box, clipping an image, dragging an image, dropping an image and canvas resize.
+For instance drawing a select box, clipping an image, dragging an image, dropping an image, resizing an image.
 Thanks to [Ulrich-Matthias](https://github.com/Fuzzyma) for building the excellent [svg.js](https://svgjs.com) library.
 It greatly simplified implementing these operations.
+
+## Base64 encoded images
+In HTML, images can be encoded in a base64 string and represented as a [Data Url](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs).
+```
+// The data url format
+data:[<mediatype>][;base64],<data>
+
+// A PNG image as data url
+data:image/png;base64,/9j/4AAQSkZJR....
+```
+You can inline in `img` and SVG `image` elements by attaching them to the `src` attribute.
 
 ## Client-side download
 Its easy to attach a base64 data url to an anchor tag. However there is a top limit different per browser.
