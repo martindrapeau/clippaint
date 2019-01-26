@@ -670,7 +670,8 @@ $(document).ready(function() {
   $('.action.redo').click(redo);
 
   $('.action.download').click(function() {
-    download(getDataUrlFromCanvas(0, 0, canvas.width, canvas.height), 'clippaint.png', 'image/png');
+    var now = (new Date()).toISOString().substr(0, 16).replace('T', '_').replace(':','h');
+    download(getDataUrlFromCanvas(0, 0, canvas.width, canvas.height), 'clippaint_' + now + '.png', 'image/png');
   });
 
   $('.action.clone').click(function(e) {
