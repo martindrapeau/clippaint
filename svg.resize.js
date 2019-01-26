@@ -175,7 +175,7 @@
                             return;
                         }
 
-                        snap = this.checkAspectRatio(snap);
+                        snap = this.checkAspectRatio(snap, true);
 
                         this.el.move(this.parameters.box.x, this.parameters.box.y + snap[1]).size(this.parameters.box.width + snap[0], this.parameters.box.height - snap[1]);
                     }
@@ -213,7 +213,7 @@
                             return;
                         }
 
-                        snap = this.checkAspectRatio(snap);
+                        snap = this.checkAspectRatio(snap, true);
 
                         this.el.move(this.parameters.box.x + snap[0], this.parameters.box.y).size(this.parameters.box.width - snap[0], this.parameters.box.height + snap[1]);
                     }
@@ -440,15 +440,15 @@
         return [diffX, diffY];
     };
 
-    ResizeHandler.prototype.checkAspectRatio = function (snap) {
+    ResizeHandler.prototype.checkAspectRatio = function (snap, lbtr) {
         if (!this.options.saveAspectRatio) {
             return snap;
         }
 
         var updatedSnap = snap.slice();
         var aspectRatio = this.parameters.box.width / this.parameters.box.height;
-        var newW = this.parameters.box.width + snap[0];
-        var newH = this.parameters.box.height - snap[1];
+        var newW = this.parameters.box.width + (lbtr ? -snap[0] : snap[0]);
+        var newH = this.parameters.box.height - (lbtr ? -snap[1] : snap[1]);
         var newAspectRatio = newW / newH;
 
         if (newAspectRatio < aspectRatio) {

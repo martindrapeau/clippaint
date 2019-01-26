@@ -286,27 +286,40 @@ $(document).ready(function() {
       $selection.empty();
   }
 
-  function resizeSimage(width, height) {
-    if (!simage || !srect || simage.width() == srect.width() && simage.height() == srect.height()) return;
-
-    var newWidth = srect.width();
-    var newHeight = srect.height();
+  function resizeSelection(width, height) {
+    if (!simage || !srect) return;
+    var newWidth = Math.round(srect.width());
+    var newHeight = Math.round(srect.height());
+    if (simage.width() == newWidth && simage.height() == newHeight) return;
 
     var tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = simage.width();
-    tmpCanvas.height = simage.height();
     var tmpCtx = tmpCanvas.getContext('2d');
-    tmpCtx.drawImage(simage.node, 0, 0);
+
+    // Always resize against the original image
+    var originalImageData = simage.remember('originalImageData');
+    if (originalImageData) {
+      tmpCanvas.width = originalImageData.width;
+      tmpCanvas.height = originalImageData.height;
+      tmpCtx.putImageData(originalImageData, 0, 0);
+    } else {
+      tmpCanvas.width = simage.width();
+      tmpCanvas.height = simage.height();
+      tmpCtx.drawImage(simage.node, 0, 0);
+      originalImageData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
+    }
+
     simage.remove();
     simage = undefined;
 
     hermite.resample_single(tmpCanvas, newWidth, newHeight, true);
     var dataUrl = tmpCanvas.toDataURL('image/png');
-    tmpCanvas.remove();
 
     simage = draw.image(dataUrl, newWidth, newHeight);
     simage.x(srect.x()).y(srect.y());
+    simage.remember('originalImageData', originalImageData);
     srect.before(simage);
+
+    tmpCanvas.remove();
   }
 
   function createSelection(x, y, width, height, fromDataUrl) {
@@ -332,15 +345,14 @@ $(document).ready(function() {
         .remember('selected', true)
         .selectize({
           rotationPoint: false,
-          pointType: 'rect',
-          points: ['lt', 'rt', 'rb', 'lb']
+          pointType: 'rect'
         })
         .resize({
           saveAspectRatio: true,
           constraint: {minX: 0, minY: 0, maxX: canvas.width, maxY: canvas.height}
         })
         .on('resizedone', function() {
-          resizeSimage(srect.width(), srect.height());
+          resizeSelection(srect.width(), srect.height());
         })
         .draggable()
         .on('dragmove', function() {
@@ -467,14 +479,17 @@ $(document).ready(function() {
   }
 
   function addDropOperationToStack(x, y, width, height, stack) {
-    // Eliminate self-canceling operations (drop of a clip at same position)
+    // Eliminate self-canceling operation of a drop on a clip at same position
     if (!stack && done.length > 0) {
-      var op = done[done.length-1];
-      if (op.type == 'clip' && op.x == x && op.y == y && op.width == width && op.height == height) {
-        done.pop();
-        return;
+      if (done.length > 0) {
+        var op = done[done.length-1];
+        if (op.type == 'clip' && op.x == x && op.y == y && op.width == width && op.height == height) {
+          done.pop();
+          return;
+        }
       }
     }
+
     (stack || done).push({
       type: 'drop',
       imageData: ctx.getImageData(x, y, width, height),
