@@ -49,14 +49,10 @@ $(document).ready(function() {
   // copySelectionToClipboard to learn more.
   //
   // ==========================================================================
-  var $message = $('.message');
   var timeoutId;
 
-  $message.first().html(`
-    Copy your screen by pressing on the Print Screen key.
-    Then paste (Ctrl+v) as an image.
-  `);
   function showMessage(message, reset) {
+    var $message = $('.message');
     if (timeoutId) clearTimeout(timeoutId);
     $message.html(message);
     if (reset) {
@@ -694,6 +690,16 @@ $(document).ready(function() {
       `);
     }
   });
+
+  $('.action.upload').click(function(e) {
+    e.preventDefault();
+    $(this).siblings('input[type=file]').click();
+  });
+
+  $('input[type=file]').on('change', function(e) {
+    cancelSelection();
+    loadImageFromFile(this.files[0]).done(copyImageToSelection);
+  })
 
   // Prevent form in navbar from submitting as its only used
   // as a container of buttons
