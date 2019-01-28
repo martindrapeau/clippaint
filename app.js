@@ -286,31 +286,37 @@ $(document).ready(function() {
     var tmpCanvas = document.createElement('canvas');
     var tmpCtx = tmpCanvas.getContext('2d');
 
-    // Always resize against the original image
+    // Always resize against the original image.
     var originalImageData = simage.remember('originalImageData');
     if (originalImageData) {
       tmpCanvas.width = originalImageData.width;
       tmpCanvas.height = originalImageData.height;
       tmpCtx.putImageData(originalImageData, 0, 0);
+      doit();
     } else {
       tmpCanvas.width = simage.width();
       tmpCanvas.height = simage.height();
-      tmpCtx.drawImage(simage.node, 0, 0);
-      originalImageData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
+      loadImageFromDataUrl(simage.src).done(function() {
+        tmpCtx.drawImage(img, 0, 0);
+        originalImageData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
+        doit();
+      });
     }
 
-    simage.remove();
-    simage = undefined;
+    function doit() {
+      simage.remove();
+      simage = undefined;
 
-    hermite.resample_single(tmpCanvas, newWidth, newHeight, true);
-    var dataUrl = tmpCanvas.toDataURL('image/png');
+      hermite.resample_single(tmpCanvas, newWidth, newHeight, true);
+      var dataUrl = tmpCanvas.toDataURL('image/png');
 
-    simage = draw.image(dataUrl, newWidth, newHeight);
-    simage.x(srect.x()).y(srect.y());
-    simage.remember('originalImageData', originalImageData);
-    srect.before(simage);
+      simage = draw.image(dataUrl, newWidth, newHeight);
+      simage.x(srect.x()).y(srect.y());
+      simage.remember('originalImageData', originalImageData);
+      srect.before(simage);
 
-    tmpCanvas.remove();
+      tmpCanvas.remove();
+    }
   }
 
   function createSelection(x, y, width, height, fromDataUrl) {
