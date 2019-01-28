@@ -66,8 +66,6 @@ $(document).ready(function() {
   function loadImageFromDataUrl(dataUrl) {
     var deferred = new $.Deferred();
     var onload = function() {
-      $content.addClass('has-image');
-      showMessage("Image pasted. Cut, copy and paste some more.");
       setTimeout(function() {
         deferred.resolve();
       }, 25);
@@ -87,11 +85,8 @@ $(document).ready(function() {
     var deferred = new $.Deferred();
     var reader = new FileReader();
 
-    showMessage('Loading image...');
     reader.onload = function(e) {
       img.src = e.target.result;
-      $content.addClass('has-image');
-      showMessage('Image pasted. Cut, copy and paste some more.');
       setTimeout(function() {
         deferred.resolve();
       }, 25);
@@ -128,8 +123,8 @@ $(document).ready(function() {
         });
         return;
       }
-      showMessage('No image found on your Clipboard!', true);
     }
+    showMessage('No image found on your Clipboard!', true);
   }
 
 
@@ -383,10 +378,15 @@ $(document).ready(function() {
       if (!preventDrop) {
         clearRedoStack();
         addDropOperationToStack(simage.x(), simage.y(), simage.width(), simage.height());
-        ctx.drawImage(simage.node, simage.x(), simage.y());
+        loadImageFromDataUrl(simage.src).done(function() {
+          ctx.drawImage(img, simage.x(), simage.y());
+          simage.remove();
+          simage = undefined;
+        });
+      } else {
+        simage.remove();
+        simage = undefined;
       }
-      simage.remove();
-      simage = undefined;
     }
 
     allowCanvasResize(true);
