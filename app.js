@@ -661,6 +661,36 @@ $(document).ready(function() {
 
   $('.action.paste').tooltip();
 
+  // Upload button
+  $('.action.upload').click(function(e) {
+    e.preventDefault();
+    $(this).siblings('input[type=file]').click();
+  });
+  $('input[type=file]').on('change', function(e) {
+    cancelSelection();
+    loadImageFromFile(this.files[0]).done(copyImageToSelection);
+  });
+
+  // Drag and drop a file
+  $(document).on('dragenter',function(e){
+    e.preventDefault();
+  });
+  $(document).on('dragover',function(e){
+    e.preventDefault();
+  });
+  $(document).on('drop', function(e) {
+    if (!e.originalEvent.dataTransfer || !e.originalEvent.dataTransfer.items) return;
+    e.preventDefault();
+    var items = e.originalEvent.dataTransfer.items;
+    for (var i = 0; i < items.length; i++) {
+      if (/^image\/(p?jpeg|gif|png)$/i.test(items[i].type)) {
+        cancelSelection();
+        loadImageFromFile(items[i].getAsFile()).done(copyImageToSelection);
+        return;
+      }
+    }
+  });
+
   $('.action.undo').click(undo);
 
   $('.action.redo').click(redo);
@@ -690,16 +720,6 @@ $(document).ready(function() {
       `);
     }
   });
-
-  $('.action.upload').click(function(e) {
-    e.preventDefault();
-    $(this).siblings('input[type=file]').click();
-  });
-
-  $('input[type=file]').on('change', function(e) {
-    cancelSelection();
-    loadImageFromFile(this.files[0]).done(copyImageToSelection);
-  })
 
   // Prevent form in navbar from submitting as its only used
   // as a container of buttons
