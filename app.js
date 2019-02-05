@@ -147,12 +147,23 @@ $(document).ready(function() {
     };
   }
 
+  function rgbToHex(r, g, b) {
+    if (r > 255 || g > 255 || b > 255)
+      throw "Invalid color component";
+    return ((r << 16) | (g << 8) | b).toString(16);
+  }
+
   function renderCanvasSizeAndMousePosition(m) {
     var $size = $('.image-size');
     $size.html(canvas.width + ' x ' + canvas.height);
     if (m) {
       var $mouse = $('.mouse-position');
-      $mouse.html(m.x + ', ' + m.y);
+      var color = '';
+      if (m.x >= 0 && m.x < canvas.width && m.y >= 0 && m.y < canvas.height) {
+        var p = ctx.getImageData(m.x, m.y, 1, 1).data;
+        color = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+      }
+      $mouse.html(m.x + ', ' + m.y + ' ' + color);
     }
   }
 
@@ -215,6 +226,7 @@ $(document).ready(function() {
     loadImageFromDataUrl(clone.imageDataUrl).done(function() {
       ctx.drawImage(img, 0, 0);
     });
+    $content.addClass('has-image');
   } else {
     initCanvas(window.innerWidth-30, window.innerHeight-56-40-10);
   }
@@ -401,7 +413,7 @@ $(document).ready(function() {
   }
 
   function onMouseDown(e) {
-    if ($(e.target).is('nav')) return;
+    if ($(e.target).is('nav') || $(e.target).closest('nav').length) return;
 
     var m = getMousePosition(e);
     if (srect) {
@@ -674,7 +686,10 @@ $(document).ready(function() {
   });
   $('input[type=file]').on('change', function(e) {
     cancelSelection();
-    loadImageFromFile(this.files[0]).done(copyImageToSelection);
+    loadImageFromFile(this.files[0]).done(function() {
+      $('input[type=file]').val('');
+      copyImageToSelection();
+    }.bind(this));
   });
 
   // Drag and drop a file
