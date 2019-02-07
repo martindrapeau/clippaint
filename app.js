@@ -147,6 +147,12 @@ $(document).ready(function() {
     };
   }
 
+  function isMouseOverCanvas(e) {
+    var m = getMousePosition(e);
+    return !$(e.target).is('nav') && !$(e.target).closest('nav').length &&
+      m.x >= 0 && m.y >= 0 && m.x < canvas.width && m.y < canvas.height;
+  }
+
   function rgbToHex(r, g, b) {
     if (r > 255 || g > 255 || b > 255)
       throw "Invalid color component";
@@ -154,16 +160,17 @@ $(document).ready(function() {
   }
 
   function renderCanvasSizeAndMousePosition(m) {
-    var $size = $('.image-size');
-    $size.html(canvas.width + ' x ' + canvas.height);
+    $('.image-size').html(canvas.width + ' x ' + canvas.height);
     if (m) {
-      var $mouse = $('.mouse-position');
+      $('.mouse-position').html(m.x + ', ' + m.y);
       var color = '';
       if (m.x >= 0 && m.x < canvas.width && m.y >= 0 && m.y < canvas.height) {
         var p = ctx.getImageData(m.x, m.y, 1, 1).data;
-        color = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+        color = p[3] ? '#' + ('000000' + rgbToHex(p[0], p[1], p[2])).slice(-6).toUpperCase() : 'transparent';
       }
-      $mouse.html(m.x + ', ' + m.y + ' ' + color);
+      var html = color ? '<span class="color-under-mouse" style="background-color:' + color + ';"></span>' : '';
+      if (color && color != 'transparent') html += ' ' + color;
+      $('.mouse-color').html(html);
     }
   }
 
@@ -282,11 +289,10 @@ $(document).ready(function() {
   }
 
   function renderSelectionSizeAndMousePosition() {
-    var $selection = $('.selection');
-    if (srect) 
-      $selection.html(srect.x() + ', ' + srect.y() + ' : ' + Math.round(srect.width()) + ' x ' + Math.round(srect.height()));
+    if (srect)
+      $('.selection').html(srect.x() + ', ' + srect.y() + ' : ' + Math.round(srect.width()) + ' x ' + Math.round(srect.height()));
     else
-      $selection.empty();
+      $('.selection').empty();
   }
 
   function resizeSelection(width, height) {
@@ -447,7 +453,7 @@ $(document).ready(function() {
         if (allowCanvasResize()) allowCanvasResize(false);
       }
     }
-    renderCanvasSizeAndMousePosition(m);
+    renderCanvasSizeAndMousePosition(isMouseOverCanvas(e) ? m : undefined);
     renderSelectionSizeAndMousePosition();
   }
 
