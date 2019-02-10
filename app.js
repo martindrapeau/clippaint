@@ -139,6 +139,7 @@ $(document).ready(function() {
   //
   // ==========================================================================
   var crect;
+  var color;
 
   function getMousePosition(e) {
     return {
@@ -163,12 +164,12 @@ $(document).ready(function() {
     $('.image-size').html(canvas.width + ' x ' + canvas.height);
     if (m) {
       $('.mouse-position').html(m.x + ', ' + m.y);
-      var color = '';
+      color = '';
       if (m.x >= 0 && m.x < canvas.width && m.y >= 0 && m.y < canvas.height) {
         var p = ctx.getImageData(m.x, m.y, 1, 1).data;
-        color = p[3] ? '#' + ('000000' + rgbToHex(p[0], p[1], p[2])).slice(-6).toUpperCase() : 'transparent';
+        color = p[3] ? '#' + ('000000' + rgbToHex(p[0], p[1], p[2])).slice(-6).toUpperCase() : '';
       }
-      var html = color ? '<span class="color-under-mouse" style="background-color:' + color + ';"></span>' : '';
+      var html = color ? '<span class="color-under-mouse" style="background-color:' + (color || 'transparent') + ';"></span>' : '';
       if (color && color != 'transparent') html += ' ' + color;
       $('.mouse-color').html(html);
     }
@@ -267,14 +268,7 @@ $(document).ready(function() {
     return dataUrl;
   }
 
-  // Copies the data url as text/plain mime type.
-  // It is not possible to copy an image/png mime type unfortunately.
-  // Using text/plain we can handle copy/paste events within this app.
-  // Even in new instances of it.
-  function copySelectionToClipboard() {
-    var t = (new Date()).getTime();
-    var str = simage ? simage.src : getDataUrlFromCanvas(0, 0, canvas.width, canvas.height);
-
+  function copyToClipboard(str) {
     if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
       window.navigator.clipboard.writeText(str);
       return;
@@ -286,6 +280,17 @@ $(document).ready(function() {
     $textarea[0].select();
     document.execCommand('copy');
     $textarea.remove();
+  }
+
+  // Copies the data url as text/plain mime type.
+  // It is not possible to copy an image/png mime type unfortunately.
+  // Using text/plain we can handle copy/paste events within this app.
+  // Even in new instances of it.
+  function copySelectionToClipboard() {
+    var t = (new Date()).getTime();
+    var str = simage ? simage.src : getDataUrlFromCanvas(0, 0, canvas.width, canvas.height);
+    copyToClipboard(str);
+    showMessage('Image selection copied to clipboard');
   }
 
   function renderSelectionSizeAndMousePosition() {
@@ -351,7 +356,7 @@ $(document).ready(function() {
       width = originalImageData.width;
       height = originalImageData.height;
     }
-    
+
     resizeSelection(width * percentage, height * percentage);
   }
 
@@ -490,6 +495,25 @@ $(document).ready(function() {
   $(document).on('mousedown', onMouseDown);
   $(document).on('mouseup', onMouseUp);
 
+
+
+  // ==========================================================================
+  //
+  // COLOR PICKER AND FILL WITH COLOR
+  //
+  // Double click to copy the color below the cursor onto the clipboard.
+  //
+  // ==========================================================================
+
+  function onDoubleClick(e) {
+    if (isMouseOverCanvas(e) && color) {
+      e.preventDefault();
+      copyToClipboard(color);
+      showMessage(color + ' copied to clipboard');
+    }
+  }
+
+  $(document).on('dblclick', onDoubleClick);
 
 
 
