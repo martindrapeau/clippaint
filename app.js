@@ -297,8 +297,11 @@ $(document).ready(function() {
 
   function resizeSelection(width, height) {
     if (!simage || !srect) return;
-    var newWidth = Math.round(srect.width());
-    var newHeight = Math.round(srect.height());
+    if (srect.width() != width) srect.width(width);
+    if (srect.height() != height) srect.height(height);
+
+    var newWidth = Math.round(width);
+    var newHeight = Math.round(height);
     if (simage.width() == newWidth && simage.height() == newHeight) return;
 
     var tmpCanvas = document.createElement('canvas');
@@ -335,6 +338,21 @@ $(document).ready(function() {
 
       tmpCanvas.remove();
     }
+  }
+
+  function resizeSelectionToPercentageOfOriginalImage(percentage) {
+    if (percentage < 0) throw "Resize percentage must be above zero";
+    if (!simage) return;
+
+    var width = simage.width();
+    var height = simage.height();
+    var originalImageData = simage.remember('originalImageData');
+    if (originalImageData) {
+      width = originalImageData.width;
+      height = originalImageData.height;
+    }
+    
+    resizeSelection(width * percentage, height * percentage);
   }
 
   function createSelection(x, y, width, height, fromDataUrl) {
@@ -640,6 +658,23 @@ $(document).ready(function() {
           e.preventDefault();
           redo();
         }
+        break;
+      case 48: // 0
+      case 49: // 1
+      case 50: // 2
+      case 51: // 3
+      case 52: // 4
+      case 53: // 5
+      case 54: // 6
+      case 55: // 7
+      case 56: // 8
+      case 57: // 9
+        if (simage) {
+          e.preventDefault();
+          var percentage = e.keyCode == 48 ? 1 : (10 - (58 - e.keyCode)) / 10;
+          resizeSelectionToPercentageOfOriginalImage(percentage);
+        }
+        break;
     }
   }
   
@@ -683,7 +718,7 @@ $(document).ready(function() {
     cancelSelection(true);
   });
 
-  $('.action.paste').tooltip();
+  $('.action.paste').tooltip().attr('title', 'Paste (Ctrl+v)');
 
   // Upload button
   $('.action.upload').click(function(e) {
