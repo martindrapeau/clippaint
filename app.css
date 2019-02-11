@@ -33,6 +33,30 @@ body.app {
 	width: 10%;
 }
 
+.toast.alert {
+	float: left;
+	position: fixed;
+    opacity: 0;
+    animation: fadeinMessage 0.5s, stayMessage 3s 0.5s, fadeoutMessage 0.5s 3.5s;
+    top: auto;
+    bottom: 30px;
+    height: 50px;
+    max-height: 50px;
+    text-align: center;
+}
+@keyframes fadeinMessage {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+}
+@keyframes stayMessage {
+    from {opacity: 1;}
+    to {opacity: 1;}
+}
+@keyframes fadeoutMessage {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 60px; opacity: 0;}
+}
+
 .content {
 	display: inline-block;
 	position: relative;

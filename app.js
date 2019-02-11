@@ -8,8 +8,10 @@ $(document).ready(function() {
   // - $content: jQuery div element that contains all that we draw
   // - canvas, ctx: canvas DOM element we draw on
   // - img: intermediate DOM element to capture and process pasted images
-  // - draw: svg.js object wrapping the SVG DOM element.
-  // - hermite: Hermite object to resize images.
+  // - draw: svg.js object wrapping the SVG DOM element
+  // - hermite: Hermite object to resize images
+  // - mouse: Current mouse position (mouse.x and mouse.y)
+  // - color: Color underneath the mouse cursor
   //
   // CANVAS & SVG
   // The canvas and SVG elements serve different purposes. The canvas, just as
@@ -33,6 +35,8 @@ $(document).ready(function() {
   var img = $('img').hide()[0];
   var draw = SVG('drawing').size(0, 0);
   var hermite = new Hermite_class();
+  var mouse;
+  var color;
 
 
 
@@ -51,16 +55,12 @@ $(document).ready(function() {
   // ==========================================================================
   var timeoutId;
 
-  function showMessage(message, reset) {
-    var $message = $('.message');
-    if (timeoutId) clearTimeout(timeoutId);
-    $message.html(message);
-    if (reset) {
-      timeoutId = setTimeout(function() {
-        $message.html('Paste (Ctrl+v) your image');
-        timeoutId = undefined;
-      }, 2000);
-    }
+  function showMessage(message) {
+    var $toast = $('<div class="toast alert alert-danger">' + message + '</div>');
+    $toast.appendTo('body');
+    setTimeout(function() {
+      $toast.remove();
+    }, 5000);
   }
 
   function loadImageFromDataUrl(dataUrl) {
@@ -96,7 +96,6 @@ $(document).ready(function() {
   };
 
   function copyImageToSelection() {
-    showMessage('Copying to canvas...');
     if (canvas.width < img.naturalWidth || canvas.height < img.naturalHeight)
       setCanvasSize(Math.max(canvas.width, img.naturalWidth), Math.max(canvas.height, img.naturalHeight));
     createSelection(0, 0, img.naturalWidth, img.naturalHeight, img.src);
@@ -119,12 +118,12 @@ $(document).ready(function() {
             loadImageFromDataUrl(text).done(copyImageToSelection);
             return;
           }
-          showMessage('No image found on your Clipboard!', true);
+          showMessage('No image found on your Clipboard!');
         });
         return;
       }
     }
-    showMessage('No image found on your Clipboard!', true);
+    showMessage('No image found on your Clipboard!');
   }
 
 
@@ -139,13 +138,13 @@ $(document).ready(function() {
   //
   // ==========================================================================
   var crect;
-  var color;
 
   function getMousePosition(e) {
-    return {
+    if (e && typeof e.pageX == 'number') mouse = {
       x: Math.round(e.pageX) - $content.offset().left - 5,
       y: Math.round(e.pageY) - $content.offset().top - 5
     };
+    return mouse;
   }
 
   function isMouseOverCanvas(e) {
@@ -164,14 +163,13 @@ $(document).ready(function() {
     $('.image-size').html(canvas.width + ' x ' + canvas.height);
     if (m) {
       $('.mouse-position').html(m.x + ', ' + m.y);
-      color = '';
       if (m.x >= 0 && m.x < canvas.width && m.y >= 0 && m.y < canvas.height) {
         var p = ctx.getImageData(m.x, m.y, 1, 1).data;
         color = p[3] ? '#' + ('000000' + rgbToHex(p[0], p[1], p[2])).slice(-6).toUpperCase() : '';
+        var html = '<span class="color-under-mouse" style="background-color:' + (color || 'transparent') + ';"></span>';
+        if (color && color != 'transparent') html += ' ' + color;
+        $('.mouse-color').html(html);
       }
-      var html = color ? '<span class="color-under-mouse" style="background-color:' + (color || 'transparent') + ';"></span>' : '';
-      if (color && color != 'transparent') html += ' ' + color;
-      $('.mouse-color').html(html);
     }
   }
 
@@ -501,19 +499,25 @@ $(document).ready(function() {
   //
   // COLOR PICKER AND FILL WITH COLOR
   //
-  // Double click to copy the color below the cursor onto the clipboard.
+  // Double click or press `c` to copy the color below the cursor onto the clipboard.
   //
   // ==========================================================================
 
-  function onDoubleClick(e) {
+  $(document).on('dblclick', function(e) {
     if (isMouseOverCanvas(e) && color) {
       e.preventDefault();
       copyToClipboard(color);
       showMessage(color + ' copied to clipboard');
     }
-  }
+  });
 
-  $(document).on('dblclick', onDoubleClick);
+  $(document).on('keydown', function(e) {
+    if (e.keyCode == 67 && !e.ctrlKey && isMouseOverCanvas(e) && color) {
+      e.preventDefault();
+      copyToClipboard(color);
+      showMessage(color + ' copied to clipboard');
+    }
+  });
 
 
 
